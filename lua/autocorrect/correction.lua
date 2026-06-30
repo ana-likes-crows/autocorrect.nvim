@@ -110,14 +110,21 @@ function M.scan_line_for_errors(bufnr, lnum, col_limit)
     local word = match.word
     local col_end = col_start + #word
 
-    local corrected = M.get_correction(word)
-    if corrected and corrected ~= word then
-      table.insert(corrections, {
-        word = word,
-        corrected = corrected,
-        col_start = col_start,
-        col_end = col_end,
-      })
+    -- Only correct a word once it has actually been "finished" — i.e. the
+    -- cursor has moved past it (a space, punctuation, newline, etc. was
+    -- typed). If col_end == col_limit, the cursor is sitting right at the
+    -- end of this word, which means it's still being typed and must be
+    -- skipped to avoid correcting it mid-word.
+    if col_end < col_limit then
+      local corrected = M.get_correction(word)
+      if corrected and corrected ~= word then
+        table.insert(corrections, {
+          word = word,
+          corrected = corrected,
+          col_start = col_start,
+          col_end = col_end,
+        })
+      end
     end
   end
 
