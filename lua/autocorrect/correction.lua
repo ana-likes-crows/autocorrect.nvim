@@ -5,7 +5,13 @@ local M = {}
 
 local ns_id = vim.api.nvim_create_namespace("autocorrect")
 
--- Iterate words with proper UTF-8 support using vim's \w pattern
+-- Iterate words with proper UTF-8 support using vim's \k (keyword) pattern.
+-- NOTE: \w in Vim regex is ASCII-only ([0-9A-Za-z_]) and does not match
+-- accented/Unicode letters (e.g. ā, é, ñ). \k is Unicode-aware: for
+-- codepoints above 255 Vim classifies letters as keyword characters using
+-- its internal character tables, independent of 'iskeyword'. Using \w here
+-- caused words containing diacritics to be split at the accented
+-- character, which then got spell-corrected as separate, broken fragments.
 local function iter_words_utf8(text)
   local words = {}
   local pos = 1
@@ -15,7 +21,7 @@ local function iter_words_utf8(text)
     while start_byte <= #text do
       local char = text:sub(start_byte, start_byte)
       -- Use vim.fn.match to check if it's a word character
-      if vim.fn.match(char, [[\w]]) >= 0 then
+      if vim.fn.match(char, [[\k]]) >= 0 then
         break
       end
       start_byte = start_byte + 1
@@ -35,7 +41,7 @@ local function iter_words_utf8(text)
       elseif byte >= 0xF0 then char_len = 4
       end
       local char = text:sub(end_byte, end_byte + char_len - 1)
-      if vim.fn.match(char, [[\w]]) < 0 then
+      if vim.fn.match(char, [[\k]]) < 0 then
         break
       end
       end_byte = end_byte + char_len
